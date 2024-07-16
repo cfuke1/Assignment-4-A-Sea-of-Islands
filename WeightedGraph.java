@@ -1,32 +1,29 @@
 import java.util.*;
 
 class WeightedGraph {
-    private final Map<String, Vertex> vertices;
 
+    ////* CODE FOR DEFINING EDGES AND VERTICES *////
+
+    private final Map<String, Vertex> vertices = new HashMap<>();
     static class Vertex {
-        String id; // Island name
-        int time; // Attraction time per island
-        List<Edge> edges;
+        String id;
+        int time;
+        List<Edge> edges = new ArrayList<>();
 
         Vertex(String id, int time) {
             this.id = id;
-            this.time = time; // Recommended time of stay for tourists
-            this.edges = new ArrayList<>(); // ArrayList contains all island edges
+            this.time = time;
         }
     }
 
     static class Edge {
-        String target; // Destination island
-        int weight; // Distance in miles
+        String target;
+        int weight;
 
         Edge(String target, int weight) {
             this.target = target;
             this.weight = weight;
         }
-    }
-
-    public WeightedGraph() {
-        this.vertices = new HashMap<>(); // Create Hashmap of all vertices
     }
 
     public void addVertex(String id, int time) {
@@ -42,148 +39,77 @@ class WeightedGraph {
         }
     }
 
-    // Dijkstra's algorithm to find the shortest path from source to target
-    public PathResult dijkstra(String sourceId, String targetId) {
-        Map<String, Integer> distances = new HashMap<>(); // Contains shortest known distance from each node to each other node
-        Map<String, String> previous = new HashMap<>();
-        PriorityQueue<Edge> priorityQueue = new PriorityQueue<>(Comparator.comparingInt(edge -> edge.weight));
+    ////* OBJECTIVE 2: FIND FASTEST PATH VISITING ALL ISLANDS *////
 
-        for (String vertexId : vertices.keySet()) {
-            distances.put(vertexId, Integer.MAX_VALUE);
-            previous.put(vertexId, null);
-        }
-        distances.put(sourceId, 0);
-        priorityQueue.add(new Edge(sourceId, 0));
-
-        while (!priorityQueue.isEmpty()) {
-            Edge currentEdge = priorityQueue.poll();
-            String currentVertexId = currentEdge.target;
-
-            if (currentVertexId.equals(targetId)) {
-                break;
-            }
-
-            for (Edge edge : vertices.get(currentVertexId).edges) {
-                int newDist = distances.get(currentVertexId) + edge.weight;
-                if (newDist < distances.get(edge.target)) {
-                    distances.put(edge.target, newDist);
-                    previous.put(edge.target, currentVertexId);
-                    priorityQueue.add(new Edge(edge.target, newDist));
-                }
-            }
-        }
-
-        List<String> path = new ArrayList<>();
-        for (String at = targetId; at != null; at = previous.get(at)) {
-            path.add(at);
-        }
-        Collections.reverse(path);
-        return new PathResult(path, distances.get(targetId));
-    }
-
-    // Class to hold the result of the path and the total distance
-    static class PathResult {
-        List<String> path;
-        int totalDistance;
-
-        PathResult(List<String> path, int totalDistance) {
-            this.path = path;
-            this.totalDistance = totalDistance;
-        }
-    }
-
-    // Method to find the fastest path visiting all targets using TSP approach
-    public List<String> findFastestPath(String startIsland, List<String> targets) {
-        List<String> bestPath = null;
-        int bestDistance = Integer.MAX_VALUE;
-
-        // Generate all permutations of target islands
-        List<List<String>> permutations = new ArrayList<>();
-        permute(targets, 0, permutations);
-
-        for (List<String> perm : permutations) {
-            List<String> fullPath = new ArrayList<>();
-            fullPath.add(startIsland);
-            fullPath.addAll(perm);
-
-            int totalDistance = calculateTotalDistance(fullPath);
-            if (totalDistance < bestDistance) {
-                bestDistance = totalDistance;
-                bestPath = fullPath;
-            }
-        }
-
-        System.out.println("Fastest path visiting all islands: " + bestPath + " with total distance: " + bestDistance + " miles");
-        return bestPath;
-    }
-
-    // Method to calculate the total distance of a path
-    private int calculateTotalDistance(List<String> path) {
-        int totalDistance = 0;
-        for (int i = 0; i < path.size() - 1; i++) {
-            PathResult result = dijkstra(path.get(i), path.get(i + 1));
-            totalDistance += result.totalDistance;
-        }
-        return totalDistance;
-    }
-
-    // Permutation helper method to generate all possible orders of targets
-    private void permute(List<String> targets, int start, List<List<String>> result) {
-        if (start == targets.size() - 1) {
-            result.add(new ArrayList<>(targets));
-            return;
-        }
-        for (int i = start; i < targets.size(); i++) {
-            Collections.swap(targets, start, i);
-            permute(targets, start + 1, result);
-            Collections.swap(targets, start, i); // backtrack
-        }
-    }
-
-    // Method to find the maximum number of islands that can be visited within an hour limit
-    public List<String> maxIslandsInChain(String startIsland, int hourLimit) {
-        List<String> visited = new ArrayList<>();
+    public void findFastestPath(String startIsland, List<String> targets) {
+        // Calls dfs with island set
         List<String> bestPath = new ArrayList<>();
-        boolean[] visitedMap = new boolean[vertices.size()];
-        int[] totalHoursSpent = {0}; // Array to hold total hours spent
-
-        dfs(startIsland, hourLimit, 0, visited, bestPath, visitedMap, totalHoursSpent);
-
-        System.out.println("Maximum islands visited in chain: " + bestPath + " with total hours spent: " + totalHoursSpent[0]);
-        return bestPath;
+        int[] bestDistance = {Integer.MAX_VALUE};
+        dfsFindPath(startIsland, targets, new ArrayList<>(), new HashSet<>(), 0, bestPath, bestDistance);
+        System.out.println("Fastest path visiting all islands: " + bestPath + " with total distance: " + bestDistance[0] + " miles");
     }
 
-    private void dfs(String currentIsland, int hourLimit, int currentTime,
-                     List<String> visited, List<String> bestPath, boolean[] visitedMap, int[] totalHoursSpent) {
+    private void dfsFindPath(String currentIsland, List<String> targets, List<String> currentPath, Set<String> visited, int currentDistance, List<String> bestPath, int[] bestDistance) {
         visited.add(currentIsland);
-        visitedMap[vertices.get(currentIsland).hashCode() % visitedMap.length] = true;
+        currentPath.add(currentIsland);
 
-        // Add island attraction time
-        currentTime += vertices.get(currentIsland).time;
-
-        if (currentTime <= hourLimit && visited.size() > bestPath.size()) {
+        if (visited.containsAll(targets) && currentDistance < bestDistance[0]) {
+            // Replaces the bestPath with current if current is faster
             bestPath.clear();
-            bestPath.addAll(visited);
-            totalHoursSpent[0] = currentTime; // Update total hours spent
+            bestPath.addAll(currentPath);
+            bestDistance[0] = currentDistance;
         }
 
         for (Edge edge : vertices.get(currentIsland).edges) {
-            if (!visitedMap[vertices.get(edge.target).hashCode() % visitedMap.length]) {
-                PathResult result = dijkstra(currentIsland, edge.target);
-                int travelTime = result.totalDistance / 500; // Assuming average speed of 500 miles/hour
-                int newTime = currentTime + travelTime;
+            // Recursively call on all adjacent islands
+            if (!visited.contains(edge.target)) {
+                dfsFindPath(edge.target, targets, currentPath, visited, currentDistance + edge.weight, bestPath, bestDistance);
+            }
+        }
 
-                if (newTime <= hourLimit) {
-                    dfs(edge.target, hourLimit, newTime, visited, bestPath, visitedMap, totalHoursSpent);
+        visited.remove(currentIsland);
+        currentPath.removeLast();
+    }
+
+    ////* OBJECTIVE 4: FIND MOST ISLANDS IN LEAST TIME *////
+
+    public void maxIslandsInChain(String startIsland, int hourLimit) {
+        List<String> visited = new ArrayList<>(), bestPath = new ArrayList<>();
+        int[] totalHoursSpent = {0};
+        dfsMaxIslands(startIsland, hourLimit, 0, visited, bestPath, new HashSet<>(), totalHoursSpent);
+        System.out.println("Maximum islands visited in chain: " + bestPath + " with total hours spent: " + totalHoursSpent[0]);
+    }
+
+    private void dfsMaxIslands(String currentIsland, int hourLimit, int currentTime, List<String> visited, List<String> bestPath, Set<String> visitedSet, int[] totalHoursSpent) {
+        visited.add(currentIsland);
+        visitedSet.add(currentIsland);
+        currentTime += vertices.get(currentIsland).time;
+
+        if (currentTime <= hourLimit && visited.size() > bestPath.size()) {
+            // Replaces the bestPath with visited if current is faster
+            bestPath.clear();
+            bestPath.addAll(visited);
+            totalHoursSpent[0] = currentTime;
+        }
+
+        for (Edge edge : vertices.get(currentIsland).edges) {
+            // Recursively call while calculating for hours
+            if (!visitedSet.contains(edge.target)) {
+                int travelTime = edge.weight / 500; // Assume average plane speed of 500 miles/hour
+                if (currentTime + travelTime <= hourLimit) {
+                    dfsMaxIslands(edge.target, hourLimit, currentTime + travelTime, visited, bestPath, visitedSet, totalHoursSpent);
                 }
             }
         }
 
-        visited.remove(visited.size() - 1);
-        visitedMap[vertices.get(currentIsland).hashCode() % visitedMap.length] = false;
+        visited.removeLast();
+        visitedSet.remove(currentIsland);
     }
 
     public static void main(String[] args) {
+
+        ////* ISLANDS AND THEIR DISTANCES INFORMATION *////
+
         WeightedGraph graph = new WeightedGraph();
         graph.addVertex("Hawaii", 240);
         graph.addVertex("New Zealand", 72);
@@ -196,34 +122,21 @@ class WeightedGraph {
         graph.addVertex("Bora Bora", 336);
         graph.addVertex("Solomon Islands", 144);
 
-        graph.addEdge("Hawaii", "New Zealand", 4660);
-        graph.addEdge("Hawaii", "Easter Island", 4840);
         graph.addEdge("Hawaii", "Tahiti", 2734);
         graph.addEdge("Hawaii", "Samoa", 2609);
         graph.addEdge("Hawaii", "Fiji", 3178);
-        graph.addEdge("Hawaii", "Guam", 3801);
-        graph.addEdge("Hawaii", "Palau", 4340);
         graph.addEdge("Hawaii", "Bora Bora", 2610);
-        graph.addEdge("Hawaii", "Solomon Islands", 3600);
-        graph.addEdge("New Zealand", "Easter Island", 4349);
         graph.addEdge("New Zealand", "Tahiti", 2485);
         graph.addEdge("New Zealand", "Samoa", 1802);
         graph.addEdge("New Zealand", "Fiji", 1600);
         graph.addEdge("New Zealand", "Guam", 3385);
-        graph.addEdge("New Zealand", "Palau", 3820);
         graph.addEdge("New Zealand", "Bora Bora", 2570);
         graph.addEdge("New Zealand", "Solomon Islands", 2925);
         graph.addEdge("Easter Island", "Tahiti", 2609);
         graph.addEdge("Easter Island", "Samoa", 2920);
-        graph.addEdge("Easter Island", "Fiji", 4070);
-        graph.addEdge("Easter Island", "Guam", 4976);
-        graph.addEdge("Easter Island", "Palau", 5488);
         graph.addEdge("Easter Island", "Bora Bora", 2580);
-        graph.addEdge("Easter Island", "Solomon Islands", 4798);
         graph.addEdge("Tahiti", "Samoa", 1616);
         graph.addEdge("Tahiti", "Fiji", 2027);
-        graph.addEdge("Tahiti", "Guam", 3718);
-        graph.addEdge("Tahiti", "Palau", 4217);
         graph.addEdge("Tahiti", "Bora Bora", 257);
         graph.addEdge("Tahiti", "Solomon Islands", 3531);
         graph.addEdge("Samoa", "Fiji", 737);
@@ -236,24 +149,13 @@ class WeightedGraph {
         graph.addEdge("Fiji", "Bora Bora", 1981);
         graph.addEdge("Fiji", "Solomon Islands", 1198);
         graph.addEdge("Guam", "Palau", 807);
-        graph.addEdge("Guam", "Bora Bora", 4047);
         graph.addEdge("Guam", "Solomon Islands", 2365);
-        graph.addEdge("Palau", "Bora Bora", 4264);
         graph.addEdge("Palau", "Solomon Islands", 2064);
-        graph.addEdge("Bora Bora", "Solomon Islands", 3513);
 
-        // Display all islands and their distance
-        // graph.display();
-
-        // Define all islands that can be visited
-        List<String> targets = Arrays.asList("New Zealand", "Tahiti", "Samoa", "Fiji", "Guam", "Palau", "Bora Bora", "Solomon Islands");
-
-        // Find the fastest path visiting all islands starting from Hawaii
+        List<String> targets = Arrays.asList("Hawaii", "New Zealand", "Tahiti", "Samoa", "Fiji", "Guam", "Palau", "Bora Bora", "Solomon Islands");
         graph.findFastestPath("Hawaii", targets);
 
-        // Define hour limit and find maximum islands in a chain
         int hourLimit = 1000;
         graph.maxIslandsInChain("Hawaii", hourLimit);
     }
 }
-
