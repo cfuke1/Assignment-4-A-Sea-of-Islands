@@ -10,8 +10,8 @@ class WeightedGraph {
 
         Vertex(String id, int time) {
             this.id = id;
-            this.time = time;
-            this.edges = new ArrayList<>();
+            this.time = time; // Recommended time of stay for tourists
+            this.edges = new ArrayList<>(); // ArrayList contains all island edges
         }
     }
 
@@ -38,13 +38,13 @@ class WeightedGraph {
         Vertex target = vertices.get(targetId);
         if (source != null && target != null) {
             source.edges.add(new Edge(targetId, weight));
-            target.edges.add(new Edge(sourceId, weight)); // Undirected
+            target.edges.add(new Edge(sourceId, weight)); // Undirected edges
         }
     }
 
     // Dijkstra's algorithm to find the shortest path from source to target
     public PathResult dijkstra(String sourceId, String targetId) {
-        Map<String, Integer> distances = new HashMap<>();
+        Map<String, Integer> distances = new HashMap<>(); // Contains shortest known distance from each node to each other node
         Map<String, String> previous = new HashMap<>();
         PriorityQueue<Edge> priorityQueue = new PriorityQueue<>(Comparator.comparingInt(edge -> edge.weight));
 
@@ -127,7 +127,7 @@ class WeightedGraph {
         return totalDistance;
     }
 
-    // Permutation method to generate all possible orders of targets
+    // Permutation helper method to generate all possible orders of targets
     private void permute(List<String> targets, int start, List<List<String>> result) {
         if (start == targets.size() - 1) {
             result.add(new ArrayList<>(targets));
@@ -181,16 +181,6 @@ class WeightedGraph {
 
         visited.remove(visited.size() - 1);
         visitedMap[vertices.get(currentIsland).hashCode() % visitedMap.length] = false;
-    }
-
-    public void display() {
-        for (Vertex vertex : vertices.values()) {
-            System.out.print(vertex.id + " (" + vertex.time + " hours) -> ");
-            for (Edge edge : vertex.edges) {
-                System.out.print("(" + edge.target + ", " + edge.weight + " miles) ");
-            }
-            System.out.println();
-        }
     }
 
     public static void main(String[] args) {
@@ -262,7 +252,7 @@ class WeightedGraph {
         graph.findFastestPath("Hawaii", targets);
 
         // Define hour limit and find maximum islands in a chain
-        int hourLimit = 1000; // Example: 48 hours
+        int hourLimit = 1000;
         graph.maxIslandsInChain("Hawaii", hourLimit);
     }
 }
